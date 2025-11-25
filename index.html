@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>書籍管理システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav {
+            background: white;
+            padding: 0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 0;
+        }
+
+        nav button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+
+        nav button.active {
+            background: white;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .content {
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-success {
+            background: #51cf66;
+            color: white;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .book-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .book-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .book-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .book-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table th {
+            background: #f0f0f0;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+
+        table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .pagination button {
+            padding: 5px 10px;
+            min-width: 35px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>📚 書籍管理</h1>
+        <div id="userInfo" style="display: none;">
+            <span id="userName" style="margin-right: 15px;"></span>
+            <button class="btn-secondary" onclick="logout()">ログアウト</button>
+        </div>
+    </header>
+
+    <div id="alert" class="alert"></div>
+
+    <nav id="nav" style="display: none;">
+        <button class="nav-btn active" onclick="switchTab('books')">書籍一覧</button>
+        <button class="nav-btn" onclick="switchTab('rental')">貸出・返却</button>
+        <button class="nav-btn" onclick="switchTab('history')">履歴</button>
+        <button class="nav-btn" onclick="switchTab('profile')">プロフィール</button>
+        <button class="nav-btn" id="adminBtn" onclick="switchTab('admin')" style="display: none;">管理</button>
+    </nav>
+
+    <!-- 書籍一覧 -->
+    <div id="books" class="content active">
+        <div class="card">
+            <h2>書籍一覧</h2>
+            <div class="book-list" id="bookList"></div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- 貸出・返却 -->
+    <div id="rental" class="content">
+        <div class="card">
+            <h2>書籍を貸出</h2>
+            <div class="form-group">
+                <label>ISBN</label>
+                <input type="text" id="rentalIsbn">
+            </div>
+            <button class="btn-primary" onclick="rentalBook()">貸出</button>
+        </div>
+
+        <div class="card">
+            <h2>返却待機中</h2>
+            <table>
+                <thead><tr><th>書籍</th><th>貸出日</th><th>返却期限</th><th>操作</th></tr></thead>
+                <tbody id="activeRentals"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 履歴 -->
+    <div id="history" class="content">
+        <div class="card">
+            <h2>借り出し履歴</h2>
+            <table>
+                <thead><tr><th>書籍</th><th>貸出日</th><th>返却期限</th><th>返却日</th></tr></thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- プロフィール -->
+    <div id="profile" class="content">
+        <div class="card">
+            <h2>プロフィール</h2>
+            <div class="form-group">
+                <label>メール</label>
+                <input type="email" id="profileEmail" disabled>
+            </div>
+            <div class="form-group">
+                <label>名前</label>
+                <input type="text" id="profileName">
+            </div>
+            <button class="btn-primary" onclick="updateProfile()">保存</button>
+        </div>
+    </div>
+
+    <!-- 管理機能 -->
+    <div id="admin" class="content">
+        <div class="card">
+            <h2>著者管理</h2>
+            <div class="form-group">
+                <label>著者名</label>
+                <input type="text" id="authorName">
+            </div>
+            <button class="btn-primary" onclick="createAuthor()">追加</button>
+        </div>
+
+        <div class="card">
+            <h2>出版社管理</h2>
+            <div class="form-group">
+                <label>出版社名</label>
+                <input type="text" id="publisherName">
+            </div>
+            <button class="btn-primary" onclick="createPublisher()">追加</button>
+        </div>
+
+        <div class="card">
+            <h2>書籍管理</h2>
+            <div class="form-group">
+                <label>ISBN</label>
+                <input type="text" id="bookIsbn">
+            </div>
+            <div class="form-group">
+                <label>タイトル</label>
+                <input type="text" id="bookTitle">
+            </div>
+            <div class="form-group">
+                <label>著者ID</label>
+                <input type="text" id="bookAuthorId">
+            </div>
+            <div class="form-group">
+                <label>出版社ID</label>
+                <input type="text" id="bookPublisherId">
+            </div>
+            <div class="form-group">
+                <label>出版年</label>
+                <input type="number" id="bookYear" min="1900" max="2100">
+            </div>
+            <div class="form-group">
+                <label>出版月</label>
+                <input type="number" id="bookMonth" min="1" max="12">
+            </div>
+            <button class="btn-primary" onclick="createBook()">追加</button>
+        </div>
+    </div>
+</div>
+
+<!-- ログインモーダル -->
+<div id="loginModal" class="modal show">
+    <div class="modal-content">
+        <div class="modal-header">ログイン</div>
+        <div id="loginAlert" class="alert"></div>
+        <div class="form-group">
+            <label>メール</label>
+            <input type="email" id="loginEmail">
+        </div>
+        <div class="form-group">
+            <label>パスワード</label>
+            <input type="password" id="loginPassword">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-primary" onclick="login()">ログイン</button>
+            <button class="btn-secondary" onclick="showRegister()">登録</button>
+        </div>
+    </div>
+</div>
+
+<!-- 登録モーダル -->
+<div id="registerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">新規登録</div>
+        <div id="registerAlert" class="alert"></div>
+        <div class="form-group">
+            <label>メール</label>
+            <input type="email" id="registerEmail">
+        </div>
+        <div class="form-group">
+            <label>名前</label>
+            <input type="text" id="registerName">
+        </div>
+        <div class="form-group">
+            <label>パスワード</label>
+            <input type="password" id="registerPassword">
+        </div>
+        <div class="form-group">
+            <label>パスワード確認</label>
+            <input type="password" id="registerPasswordConfirm">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-primary" onclick="register()">登録</button>
+            <button class="btn-secondary" onclick="showLogin()">戻る</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:3000';
+    let user = null;
+    let token = null;
+
+    window.addEventListener('load', function() {
+        token = localStorage.getItem('token');
+        user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (token && user) {
+            showApp();
+        }
+    });
+
+    function showAlert(id, msg, type) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.className = 'alert show alert-' + type;
+        setTimeout(function() {
+            el.classList.remove('show');
+        }, 4000);
+    }
+
+    function login() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        if (!email || !password) {
+            showAlert('loginAlert', '入力してください', 'danger');
+            return;
+        }
+
+        fetch(API + '/user/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.accessToken) throw new Error(data.message || 'ログイン失敗');
+
+                token = data.accessToken;
+                user = data.user;
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+                showApp();
+            })
+            .catch(e => showAlert('loginAlert', e.message, 'danger'));
+    }
+
+    function register() {
+        const email = document.getElementById('registerEmail').value;
+        const name = document.getElementById('registerName').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirm = document.getElementById('registerPasswordConfirm').value;
+
+        if (!email || !name || !password) {
+            showAlert('registerAlert', '入力してください', 'danger');
+            return;
+        }
+        if (password !== confirm) {
+            showAlert('registerAlert', 'パスワードが一致しません', 'danger');
+            return;
+        }
+
+        fetch(API + '/user/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name, password })
+        })
+            .then(res => res.json())
+            .then(data => {
+                showAlert('registerAlert', '登録成功！ログインしてください', 'success');
+                setTimeout(showLogin, 2000);
+            })
+            .catch(e => showAlert('registerAlert', e.message, 'danger'));
+    }
+
+    function logout() {
+        localStorage.clear();
+        token = null;
+        user = null;
+        document.getElementById('loginModal').classList.add('show');
+        document.getElementById('userInfo').style.display = 'none';
+        document.getElementById('nav').style.display = 'none';
+    }
+
+    function showApp() {
+        document.getElementById('loginModal').classList.remove('show');
+        document.getElementById('userInfo').style.display = 'flex';
+        document.getElementById('nav').style.display = 'flex';
+        document.getElementById('userName').textContent = user.name;
+        if (user.isAdmin) document.getElementById('adminBtn').style.display = 'block';
+        loadBooks();
+    }
+
+    function showLogin() {
+        document.getElementById('loginModal').classList.add('show');
+        document.getElementById('registerModal').classList.remove('show');
+    }
+
+    function showRegister() {
+        document.getElementById('loginModal').classList.remove('show');
+        document.getElementById('registerModal').classList.add('show');
+    }
+
+    function switchTab(name) {
+        document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active'));
+        document.getElementById(name).classList.add('active');
+        event.target.classList.add('active');
+
+        if (name === 'history') loadHistory();
+        if (name === 'rental') loadActiveRentals();
+        if (name === 'profile') loadProfile();
+    }
+
+    function loadBooks(page) {
+        page = page || 1;
+        fetch(API + '/book/list?page=' + page + '&pageSize=12')
+            .then(res => res.json())
+            .then(data => {
+                const html = data.books.map(b =>
+                    '<div class="book-card">' +
+                    '<h3>' + b.title + '</h3>' +
+                    '<div class="book-info">' +
+                    '<div><strong>著者:</strong> ' + b.author.name + '</div>' +
+                    '<div><strong>ISBN:</strong> ' + b.isbn + '</div>' +
+                    '<div><strong>出版:</strong> ' + b.publication_year_month + '</div>' +
+                    '</div>' +
+                    '<button class="btn-primary" onclick="toRental(\'' + b.isbn + '\')" style="width: 100%; padding: 8px;">貸出</button>' +
+                    '</div>'
+                ).join('');
+                document.getElementById('bookList').innerHTML = html;
+
+                let paging = '';
+                for (let i = 1; i <= data.last_page; i++) {
+                    paging += '<button class="btn-' + (i === page ? 'primary' : 'secondary') + '" onclick="loadBooks(' + i + ')">' + i + '</button>';
+                }
+                document.getElementById('pagination').innerHTML = paging;
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function toRental(isbn) {
+        document.getElementById('rentalIsbn').value = isbn;
+        switchTab('rental');
+    }
+
+    function rentalBook() {
+        const isbn = document.getElementById('rentalIsbn').value;
+        if (!isbn) {
+            showAlert('alert', 'ISBNを入力してください', 'danger');
+            return;
+        }
+
+        fetch(API + '/book/rental', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ bookIsbn: isbn })
+        })
+            .then(res => res.json())
+            .then(data => {
+                showAlert('alert', '貸出完了', 'success');
+                document.getElementById('rentalIsbn').value = '';
+                loadActiveRentals();
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function loadActiveRentals() {
+        fetch(API + '/user/rental-history', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+            .then(res => res.json())
+            .then(data => {
+                const active = data.history.filter(h => !h.returnedDate);
+                const html = active.map(r =>
+                    '<tr>' +
+                    '<td>' + r.book.title + '</td>' +
+                    '<td>' + new Date(r.checkoutDate).toLocaleDateString('ja-JP') + '</td>' +
+                    '<td>' + new Date(r.dueDate).toLocaleDateString('ja-JP') + '</td>' +
+                    '<td><button class="btn-success" onclick="returnBook(\'' + r.id + '\')">返却</button></td>' +
+                    '</tr>'
+                ).join('');
+                document.getElementById('activeRentals').innerHTML = html;
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function returnBook(id) {
+        fetch(API + '/book/return', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ rentalId: id })
+        })
+            .then(res => res.json())
+            .then(data => {
+                showAlert('alert', '返却完了', 'success');
+                loadActiveRentals();
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function loadHistory() {
+        fetch(API + '/user/rental-history', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+            .then(res => res.json())
+            .then(data => {
+                const html = data.history.map(r =>
+                    '<tr>' +
+                    '<td>' + r.book.title + '</td>' +
+                    '<td>' + new Date(r.checkoutDate).toLocaleDateString('ja-JP') + '</td>' +
+                    '<td>' + new Date(r.dueDate).toLocaleDateString('ja-JP') + '</td>' +
+                    '<td>' + (r.returnedDate ? new Date(r.returnedDate).toLocaleDateString('ja-JP') : '-') + '</td>' +
+                    '</tr>'
+                ).join('');
+                document.getElementById('historyBody').innerHTML = html;
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function loadProfile() {
+        document.getElementById('profileEmail').value = user.email;
+        document.getElementById('profileName').value = user.name;
+    }
+
+    function updateProfile() {
+        const name = document.getElementById('profileName').value;
+        if (!name) {
+            showAlert('alert', '名前を入力してください', 'danger');
+            return;
+        }
+
+        fetch(API + '/user/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ name })
+        })
+            .then(res => res.json())
+            .then(data => {
+                user.name = name;
+                localStorage.setItem('user', JSON.stringify(user));
+                document.getElementById('userName').textContent = name;
+                showAlert('alert', 'プロフィール更新完了', 'success');
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function createAuthor() {
+        const name = document.getElementById('authorName').value;
+        if (!name) {
+            showAlert('alert', '著者名を入力してください', 'danger');
+            return;
+        }
+
+        fetch(API + '/admin/author', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ name })
+        })
+            .then(res => res.json())
+            .then(data => {
+                showAlert('alert', '著者を追加しました', 'success');
+                document.getElementById('authorName').value = '';
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function createPublisher() {
+        const name = document.getElementById('publisherName').value;
+        if (!name) {
+            showAlert('alert', '出版社名を入力してください', 'danger');
+            return;
+        }
+
+        fetch(API + '/admin/publisher', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ name })
+        })
+            .then(res => res.json())
+            .then(data => {
+                showAlert('alert', '出版社を追加しました', 'success');
+                document.getElementById('publisherName').value = '';
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+
+    function createBook() {
+        const isbn = document.getElementById('bookIsbn').value;
+        const title = document.getElementById('bookTitle').value;
+        const authorId = document.getElementById('bookAuthorId').value;
+        const publisherId = document.getElementById('bookPublisherId').value;
+        const year = document.getElementById('bookYear').value;
+        const month = document.getElementById('bookMonth').value;
+
+        if (!isbn || !title || !authorId || !publisherId || !year || !month) {
+            showAlert('alert', 'すべて入力してください', 'danger');
+            return;
+        }
+
+        fetch(API + '/admin/book', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                isbn: isbn,
+                title: title,
+                authorId: authorId,
+                publisherId: publisherId,
+                publicationYear: parseInt(year),
+                publicationMonth: parseInt(month)
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                showAlert('alert', '書籍を追加しました', 'success');
+                document.getElementById('bookIsbn').value = '';
+                document.getElementById('bookTitle').value = '';
+                document.getElementById('bookAuthorId').value = '';
+                document.getElementById('bookPublisherId').value = '';
+                document.getElementById('bookYear').value = '';
+                document.getElementById('bookMonth').value = '';
+            })
+            .catch(e => showAlert('alert', e.message, 'danger'));
+    }
+</script>
+</body>
+</html>

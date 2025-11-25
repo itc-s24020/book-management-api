@@ -1,96 +1,99 @@
-// src/index.ts
 import express, { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+import userRoutes from './routes/userRoutes';
+import bookRoutes from './routes/bookRoutes';
+import adminRoutes from './routes/adminRoutes';
 
-// 環境変数の読み込み（Node.js環境では通常自動で読み込まれますが、明示的にインポートする場合もあります）
-// import 'dotenv/config';
+// Environment variables
+import dotenv from 'dotenv';
+dotenv.config();
 
-// Prisma Client のインスタンスを作成
+// Prisma Client initialization
 const prisma = new PrismaClient();
 
-// Express アプリケーションの初期化
+// Express app initialization
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(express.json()); // JSON形式のボディを解析
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// --- ルーティングの定義（簡略版、本来は src/routes に分割） ---
+// 静的ファイル配信
+app.use(express.static(path.join(__dirname, '../')));
 
-// ヘルスチェック用ルート
-app.get('/', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'ok', service: 'Book Management API', version: '1.0.0' });
-});
+// CORS設定
+app.use((req: Request, res: Response, next: NextFunction) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-// ユーザー登録（認証なし）
-// 本来は src/controllers/userController.ts に実装
-app.post('/user/register', async (req: Request, res: Response) => {
-    // ダミー実装: 実際のパスワードハッシュ化とDB挿入ロジックが必要
-    const { email, name, password } = req.body;
-    console.log(`User registration attempt for: ${email}`);
-
-    // 例: ここにPrismaを使ったユーザー作成ロジックが入ります
-    // await prisma.user.create({...});
-
-    res.status(201).json({}); // 成功時は空のレスポンスを返すことが多い
-});
-
-// 書籍一覧取得（認証なし）
-// 本来は src/routes/bookRoutes.ts と src/controllers/bookController.ts に実装
-app.get('/book/list{/:page}', async (req: Request, res: Response) => {
-    const page = parseInt(req.params.page || '1');
-    const limit = 10;
-
-    try {
-        const totalCount = await prisma.book.count({ where: { isDeleted: false } });
-        const books = await prisma.book.findMany({
-            skip: (page - 1) * limit,
-            take: limit,
-            where: { isDeleted: false },
-            select: {
-                isbn: true,
-                title: true,
-                publicationYear: true,
-                publicationMonth: true,
-                author: { select: { name: true } }
-            }
-        });
-
-        const lastPage = Math.ceil(totalCount / limit);
-
-        res.status(200).json({
-            current: page,
-            last_page: lastPage,
-            books: books.map(book => ({
-                isbn: String(book.isbn), // BigIntを文字列に変換
-                title: book.title,
-                author: book.author,
-                publication_year_month: `${book.publicationYear}-${String(book.publicationMonth).padStart(2, '0')}`
-            }))
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "An error occurred fetching books." });
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
     }
+    next();
 });
 
-// --- エラーハンドリングミドルウェア ---
+// Health check route
+app.get('/', (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, '../index.html'));
+});
+
+// Route definitions
+app.use('/user', userRoutes);
+app.use('/book', bookRoutes);
+app.use('/admin', adminRoutes);
+
+// 404 handler
+app.use((req: Request, res: Response) => {
+    res.status(404).json({ message: 'Route not found' });
+});
+
+// Global error handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
-});
-
-// サーバー起動
-const server = app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
-});
-
-// データベース接続の切断処理
-process.on('SIGINT', async () => {
-    console.log('Server shutting down...');
-    server.close(() => {
-        prisma.$disconnect();
-        console.log('Prisma disconnected. Server closed.');
-        process.exit(0);
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
+        message: err.message || 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
     });
 });
+
+// Server startup
+const server = app.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown
+const gracefulShutdown = async () => {
+    console.log('\n📍 Server shutting down gracefully...');
+    server.close(() => {
+        console.log('✓ HTTP server closed');
+    });
+
+    try {
+        await prisma.$disconnect();
+        console.log('✓ Prisma disconnected');
+        process.exit(0);
+    } catch (error) {
+        console.error('Error during shutdown:', error);
+        process.exit(1);
+    }
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+// Uncaught exception handler
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    gracefulShutdown();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown();
+});
+
+export default app;
