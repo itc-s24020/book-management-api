@@ -671,25 +671,13 @@
             },
             body: JSON.stringify({ bookIsbn: isbn })
         })
-            .then(res => {
-                console.log('Rental response status:', res.status);
-                if (!res.ok) {
-                    return res.json().then(data => {
-                        throw new Error(data.message || `HTTP ${res.status}`);
-                    });
-                }
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
-                console.log('Rental successful:', data);
                 showAlert('alert', '貸出完了', 'success');
                 document.getElementById('rentalIsbn').value = '';
                 loadActiveRentals();
             })
-            .catch(e => {
-                console.error('Rental error:', e);
-                showAlert('alert', '貸出エラー: ' + e.message, 'danger');
-            });
+            .catch(e => showAlert('alert', e.message, 'danger'));
     }
 
     function loadActiveRentals() {
@@ -721,42 +709,21 @@
             });
     }
 
-    function returnBook(rentalId) {
-        console.log('returnBook called with rentalId:', rentalId);
-
-        if (!rentalId || rentalId.trim() === '') {
-            showAlert('alert', '無効な貸出ID', 'danger');
-            return;
-        }
-
+    function returnBook(id) {
         fetch(API + '/book/return', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify({ rentalId: rentalId })
+            body: JSON.stringify({ rentalId: id })
         })
-            .then(res => {
-                console.log('Return response status:', res.status);
-                if (!res.ok) {
-                    return res.json().then(data => {
-                        throw new Error(data.message || `HTTP ${res.status}`);
-                    }).catch(parseError => {
-                        throw new Error(`HTTP ${res.status}`);
-                    });
-                }
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
-                console.log('Return successful:', data);
                 showAlert('alert', '返却完了', 'success');
                 loadActiveRentals();
             })
-            .catch(e => {
-                console.error('Return error details:', e);
-                showAlert('alert', '返却エラー: ' + (e.message || '不明なエラー'), 'danger');
-            });
+            .catch(e => showAlert('alert', e.message, 'danger'));
     }
 
     function loadHistory() {
@@ -807,24 +774,14 @@
             },
             body: JSON.stringify({ name })
         })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(data => {
-                        throw new Error(data.message || `HTTP ${res.status}`);
-                    });
-                }
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 user.name = name;
                 localStorage.setItem('user', JSON.stringify(user));
                 document.getElementById('userName').textContent = name;
                 showAlert('alert', 'プロフィール更新完了', 'success');
             })
-            .catch(e => {
-                console.error('Profile update error:', e);
-                showAlert('alert', 'プロフィール更新エラー: ' + e.message, 'danger');
-            });
+            .catch(e => showAlert('alert', e.message, 'danger'));
     }
 
     function createAuthor() {
@@ -842,22 +799,12 @@
             },
             body: JSON.stringify({ name })
         })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(data => {
-                        throw new Error(data.message || `HTTP ${res.status}`);
-                    });
-                }
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 showAlert('alert', '著者を追加しました', 'success');
                 document.getElementById('authorName').value = '';
             })
-            .catch(e => {
-                console.error('Create author error:', e);
-                showAlert('alert', '著者追加エラー: ' + e.message, 'danger');
-            });
+            .catch(e => showAlert('alert', e.message, 'danger'));
     }
 
     function createPublisher() {
@@ -875,22 +822,12 @@
             },
             body: JSON.stringify({ name })
         })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(data => {
-                        throw new Error(data.message || `HTTP ${res.status}`);
-                    });
-                }
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 showAlert('alert', '出版社を追加しました', 'success');
                 document.getElementById('publisherName').value = '';
             })
-            .catch(e => {
-                console.error('Create publisher error:', e);
-                showAlert('alert', '出版社追加エラー: ' + e.message, 'danger');
-            });
+            .catch(e => showAlert('alert', e.message, 'danger'));
     }
 
     function createBook() {
@@ -921,14 +858,7 @@
                 publicationMonth: parseInt(month)
             })
         })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(data => {
-                        throw new Error(data.message || `HTTP ${res.status}`);
-                    });
-                }
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 showAlert('alert', '書籍を追加しました', 'success');
                 document.getElementById('bookIsbn').value = '';
@@ -938,10 +868,7 @@
                 document.getElementById('bookYear').value = '';
                 document.getElementById('bookMonth').value = '';
             })
-            .catch(e => {
-                console.error('Create book error:', e);
-                showAlert('alert', '書籍追加エラー: ' + e.message, 'danger');
-            });
+            .catch(e => showAlert('alert', e.message, 'danger'));
     }
 </script>
 </body>
