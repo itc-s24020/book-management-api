@@ -438,57 +438,122 @@
     }
 
     function login() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+
         if (!email || !password) {
             showAlert('loginAlert', '入力してください', 'danger');
             return;
         }
 
+        // ローディング表示
+        const loginBtn = event.target;
+        const originalText = loginBtn.textContent;
+        loginBtn.textContent = 'ログイン中...';
+        loginBtn.disabled = true;
+
+        console.log('Login attempting to:', API + '/user/login');
+
         fetch(API + '/user/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ email, password })
         })
-            .then(res => res.json())
+            .then(res => {
+                console.log('Response status:', res.status);
+                console.log('Response headers:', res.headers);
+                if (!res.ok) {
+                    return res.json().then(data => {
+                        throw new Error(data.message || `HTTP Error: ${res.status}`);
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
-                if (!data.accessToken) throw new Error(data.message || 'ログイン失敗');
+                console.log('Login successful:', data);
+                if (!data.accessToken) throw new Error('トークンが取得できません');
 
                 token = data.accessToken;
                 user = data.user;
                 localStorage.setItem('token', token);
                 localStorage.setItem('user', JSON.stringify(user));
-                showApp();
+                showAlert('loginAlert', 'ログイン成功！', 'success');
+                setTimeout(showApp, 500);
             })
-            .catch(e => showAlert('loginAlert', e.message, 'danger'));
+            .catch(e => {
+                console.error('Login error details:', e);
+                showAlert('loginAlert', e.message || 'ログインに失敗しました', 'danger');
+            })
+            .finally(() => {
+                loginBtn.textContent = originalText;
+                loginBtn.disabled = false;
+            });
     }
 
     function register() {
-        const email = document.getElementById('registerEmail').value;
-        const name = document.getElementById('registerName').value;
-        const password = document.getElementById('registerPassword').value;
-        const confirm = document.getElementById('registerPasswordConfirm').value;
+        const email = document.getElementById('registerEmail').value.trim();
+        const name = document.getElementById('registerName').value.trim();
+        const password = document.getElementById('registerPassword').value.trim();
+        const confirm = document.getElementById('registerPasswordConfirm').value.trim();
 
         if (!email || !name || !password) {
             showAlert('registerAlert', '入力してください', 'danger');
+            return;
+        }
+        if (!email.includes('@')) {
+            showAlert('registerAlert', '有効なメールアドレスを入力してください', 'danger');
             return;
         }
         if (password !== confirm) {
             showAlert('registerAlert', 'パスワードが一致しません', 'danger');
             return;
         }
+        if (password.length < 6) {
+            showAlert('registerAlert', 'パスワードは6文字以上です', 'danger');
+            return;
+        }
+
+        const registerBtn = event.target;
+        const originalText = registerBtn.textContent;
+        registerBtn.textContent = '登録中...';
+        registerBtn.disabled = true;
+
+        console.log('Register attempting to:', API + '/user/register');
 
         fetch(API + '/user/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, name, password })
         })
-            .then(res => res.json())
+            .then(res => {
+                console.log('Response status:', res.status);
+                if (!res.ok) {
+                    return res.json().then(data => {
+                        throw new Error(data.message || `HTTP Error: ${res.status}`);
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
+                console.log('Register successful:', data);
                 showAlert('registerAlert', '登録成功！ログインしてください', 'success');
+                // フォームをリセット
+                document.getElementById('registerEmail').value = '';
+                document.getElementById('registerName').value = '';
+                document.getElementById('registerPassword').value = '';
+                document.getElementById('registerPasswordConfirm').value = '';
                 setTimeout(showLogin, 2000);
             })
-            .catch(e => showAlert('registerAlert', e.message, 'danger'));
+            .catch(e => {
+                console.error('Register error details:', e);
+                showAlert('registerAlert', e.message || '登録に失敗しました', 'danger');
+            })
+            .finally(() => {
+                registerBtn.textContent = originalText;
+                registerBtn.disabled = false;
+            });
     }
 
     function logout() {
@@ -496,8 +561,11 @@
         token = null;
         user = null;
         document.getElementById('loginModal').classList.add('show');
+        document.getElementById('registerModal').classList.remove('show');
         document.getElementById('userInfo').style.display = 'none';
         document.getElementById('nav').style.display = 'none';
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
     }
 
     function showApp() {

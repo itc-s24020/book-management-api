@@ -16,24 +16,29 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// 静的ファイル配信
-app.use(express.static(path.join(__dirname, '../')));
-
-// CORS設定
+// CORS設定 - 最初に設定する（middlewareより前）
 app.use((req: Request, res: Response, next: NextFunction) => {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range, Content-Type');
+    res.header('Access-Control-Max-Age', '86400');
 
+    // OPTIONSプリフライトリクエストの処理
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
+
     next();
 });
+
+// Middleware - Body parser
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// 静的ファイル配信
+app.use(express.static(path.join(__dirname, '../')));
 
 // Health check route
 app.get('/', (req: Request, res: Response) => {
@@ -63,6 +68,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 const server = app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`API available at: http://localhost:${PORT}/user/login`);
 });
 
 // Graceful shutdown
