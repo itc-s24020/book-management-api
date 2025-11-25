@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Author {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(128)
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  books     Book[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([name])
+  @@map("author")
+}
+
+model Publisher {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(128)
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  books     Book[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([name])
+  @@map("publisher")
+}
+
+model User {
+  id         String      @id @default(uuid())
+  email      String      @unique @db.VarChar(254)
+  name       String      @db.VarChar(512)
+  password   String      @db.VarChar(256)
+  isAdmin    Boolean     @default(false) @map("is_admin")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  isDeleted  Boolean     @default(false) @map("is_deleted")
+  rentalLogs RentalLog[]
+
+  @@map("user")
+}
+
+model Book {
+  isbn             BigInt      @id
+  title            String      @db.VarChar(512)
+  authorId         String      @map("author_id")
+  author           Author      @relation(fields: [authorId], references: [id])
+  publisherId      String      @map("publisher_id")
+  publisher        Publisher   @relation(fields: [publisherId], references: [id])
+  publicationYear  Int         @map("publication_year")
+  publicationMonth Int         @map("publication_month")
+  isDeleted        Boolean     @default(false) @map("is_deleted")
+  rentalLogs       RentalLog[]
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@map("book")
+}
+
+model RentalLog {
+  id           String    @id @default(uuid())
+  bookIsbn     BigInt    @map("book_isbn")
+  book         Book      @relation(fields: [bookIsbn], references: [isbn])
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id])
+  checkoutDate DateTime  @map("checkout_date")
+  dueDate      DateTime  @map("due_date")
+  returnedDate DateTime? @map("returned_date")
+
+  @@map("rental_log")
+}
