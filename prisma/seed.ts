@@ -1,195 +1,101 @@
+// prisma/seed.ts
+
 import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import { parse } from 'csv-parse';
 
 const prisma = new PrismaClient();
 
+// CSVファイルからデータを読み込む汎用関数
+// CSVの生データ (全て string) を配列として返す
+const loadCSV = (fileName: string): Promise<Record<string, string>[]> => {
+    return new Promise((resolve, reject) => {
+        // CSVファイルは prisma ディレクトリにあることを前提
+        const filePath = path.join(__dirname, fileName);
+        const data: Record<string, string>[] = [];
+
+        fs.createReadStream(filePath)
+            .pipe(parse({
+                columns: true, // ヘッダーをキーとして使用
+                skip_empty_lines: true,
+            }))
+            .on('data', (row) => {
+                data.push(row);
+            })
+            .on('end', () => {
+                resolve(data);
+            })
+            .on('error', (error) => {
+                reject(error);
+            });
+    });
+};
+
 async function main() {
-    console.log('🌱 Starting seed...');
+    console.log('✨ Start seeding (MySQL) ...');
 
-    try {
-        // 既存データをクリア（オプション）
-        // await prisma.rentalLog.deleteMany({});
-        // await prisma.book.deleteMany({});
-        // await prisma.author.deleteMany({});
-        // await prisma.publisher.deleteMany({});
-        // await prisma.user.deleteMany({});
+    // 1. Author データの投入
+    const authorRawData = await loadCSV('author.csv');
 
-        // 著者を作成
-        console.log('📝 Creating authors...');
-        const author1 = await prisma.author.upsert({
-            where: { id: 'auth-001' },
-            update: {},
-            create: {
-                id: 'auth-001',
-                name: '掌田 津耶乃'
-            }
+    for (const row of authorRawData) {
+        // スキーマの id, name に合わせてデータを投入
+        await prisma.author.create({
+            data: {
+                id: row.id,
+                name: row.name,
+                // isDeleted, createdAt は @default で自動設定される
+            },
         });
-
-        const author2 = await prisma.author.upsert({
-            where: { id: 'auth-002' },
-            update: {},
-            create: {
-                id: 'auth-002',
-                name: '山田 太郎'
-            }
-        });
-
-        const author3 = await prisma.author.upsert({
-            where: { id: 'auth-003' },
-            update: {},
-            create: {
-                id: 'auth-003',
-                name: '佐藤 次郎'
-            }
-        });
-
-        const author4 = await prisma.author.upsert({
-            where: { id: 'auth-004' },
-            update: {},
-            create: {
-                id: 'auth-004',
-                name: '田中 花子'
-            }
-        });
-
-        const author5 = await prisma.author.upsert({
-            where: { id: 'auth-005' },
-            update: {},
-            create: {
-                id: 'auth-005',
-                name: '遠藤 三郎'
-            }
-        });
-
-        // 出版社を作成
-        console.log('🏢 Creating publishers...');
-        const publisher1 = await prisma.publisher.upsert({
-            where: { id: 'pub-001' },
-            update: {},
-            create: {
-                id: 'pub-001',
-                name: '株式会社 秀和システム'
-            }
-        });
-
-        const publisher2 = await prisma.publisher.upsert({
-            where: { id: 'pub-002' },
-            update: {},
-            create: {
-                id: 'pub-002',
-                name: '株式会社 技術評論社'
-            }
-        });
-
-        const publisher3 = await prisma.publisher.upsert({
-            where: { id: 'pub-003' },
-            update: {},
-            create: {
-                id: 'pub-003',
-                name: '株式会社 インプレス'
-            }
-        });
-
-        const publisher4 = await prisma.publisher.upsert({
-            where: { id: 'pub-004' },
-            update: {},
-            create: {
-                id: 'pub-004',
-                name: 'SBクリエイティブ株式会社'
-            }
-        });
-
-        const publisher5 = await prisma.publisher.upsert({
-            where: { id: 'pub-005' },
-            update: {},
-            create: {
-                id: 'pub-005',
-                name: '株式会社 日経BP'
-            }
-        });
-
-        // 書籍を作成
-        console.log('📚 Creating books...');
-        const book1 = await prisma.book.upsert({
-            where: { isbn: 9784798070285n },
-            update: {},
-            create: {
-                isbn: 9784798070285n,
-                title: 'Node.js 超入門[第4版]',
-                authorId: author1.id,
-                publisherId: publisher1.id,
-                publicationYear: 2023,
-                publicationMonth: 7
-            }
-        });
-
-        const book2 = await prisma.book.upsert({
-            where: { isbn: 9784798154562n },
-            update: {},
-            create: {
-                isbn: 9784798154562n,
-                title: '徹底攻略C#の基本と応用',
-                authorId: author2.id,
-                publisherId: publisher4.id,
-                publicationYear: 2024,
-                publicationMonth: 1
-            }
-        });
-
-        const book3 = await prisma.book.upsert({
-            where: { isbn: 9784297138383n },
-            update: {},
-            create: {
-                isbn: 9784297138383n,
-                title: 'PythonによるWebスクレイピング入門',
-                authorId: author3.id,
-                publisherId: publisher2.id,
-                publicationYear: 2023,
-                publicationMonth: 11
-            }
-        });
-
-        const book4 = await prisma.book.upsert({
-            where: { isbn: 9784296116845n },
-            update: {},
-            create: {
-                isbn: 9784296116845n,
-                title: '図解ポケット IoTビジネスがわかる本',
-                authorId: author4.id,
-                publisherId: publisher2.id,
-                publicationYear: 2022,
-                publicationMonth: 5
-            }
-        });
-
-        const book5 = await prisma.book.upsert({
-            where: { isbn: 9784297141529n },
-            update: {},
-            create: {
-                isbn: 9784297141529n,
-                title: 'いちばんやさしいTypeScriptの教本',
-                authorId: author5.id,
-                publisherId: publisher3.id,
-                publicationYear: 2024,
-                publicationMonth: 2
-            }
-        });
-
-        console.log('✅ Seed data created successfully!');
-        console.log(`
-    ✓ Authors: ${[author1, author2, author3, author4, author5].length}
-    ✓ Publishers: ${[publisher1, publisher2, publisher3, publisher4, publisher5].length}
-    ✓ Books: ${[book1, book2, book3, book4, book5].length}
-    `);
-
-    } catch (error) {
-        console.error('❌ Error during seeding:', error);
-        throw error;
     }
+    console.log(`✅ Seeded ${authorRawData.length} authors.`);
+
+    // 2. Publisher データの投入
+    const publisherRawData = await loadCSV('publisher.csv');
+
+    for (const row of publisherRawData) {
+        // スキーマの id, name に合わせてデータを投入
+        await prisma.publisher.create({
+            data: {
+                id: row.id,
+                name: row.name,
+            },
+        });
+    }
+    console.log(`✅ Seeded ${publisherRawData.length} publishers.`);
+
+    // 3. Book データの投入
+    const bookRawData = await loadCSV('book.csv');
+
+    for (const row of bookRawData) {
+        // CSVの snake_case をスキーマの camelCase と BigInt/Int 型に変換して投入
+        await prisma.book.create({
+            data: {
+                // BigInt への変換が必要
+                isbn: BigInt(row.isbn),
+                title: row.title,
+                // フィールド名のマッピング (snake_case -> camelCase)
+                authorId: row.author_id,
+                publisherId: row.publisher_id,
+                // Int への変換が必要
+                publicationYear: parseInt(row.publication_year, 10),
+                publicationMonth: parseInt(row.publication_month, 10),
+            },
+        });
+    }
+    console.log(`✅ Seeded ${bookRawData.length} books.`);
+
+    // User や RentalLog のCSVデータがないためスキップ
+    // 必要に応じて、ここでダミーの User データなどを投入できます
+
+    console.log('✨ Seeding finished.');
 }
 
 main()
-    .catch(console.error)
+    .catch((e) => {
+        console.error(e);
+        process.exit(1);
+    })
     .finally(async () => {
         await prisma.$disconnect();
-        console.log('🔌 Disconnected from database');
     });
