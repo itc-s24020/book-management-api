@@ -25,7 +25,8 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "dotenv": "^16.0.0"
   },
   "devDependencies": {
     "@types/csv-parse": "^1.1.12",

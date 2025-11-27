@@ -1,17 +1,15 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import path from 'path';
 import userRoutes from './routes/userRoutes';
 import bookRoutes from './routes/bookRoutes';
 import adminRoutes from './routes/adminRoutes';
-
-// Environment variables
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 console.log('📋 Environment Check:');
-console.log('PORT:', process.env.PORT);
-console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT || 3000);
+console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
 console.log('DATABASE_URL:', process.env.DATABASE_URL ? '✓ Set' : '✗ Not set');
 console.log('JWT_SECRET:', process.env.JWT_SECRET ? '✓ Set' : '✗ Not set');
 
@@ -29,7 +27,7 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS設定 - 最初に設定する
+// CORS middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -45,24 +43,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-// Middleware - Body parser
+// Body parser middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`\n📨 ${req.method} ${req.path}`);
-    console.log('Body:', req.body);
+    if (req.body && Object.keys(req.body).length > 0) {
+        console.log('Body:', req.body);
+    }
     next();
-});
-
-// 静的ファイル配信
-app.use(express.static(path.join(__dirname, '../')));
-
-// Health check route
-app.get('/', (req: Request, res: Response) => {
-    console.log('✓ Serving index.html');
-    res.sendFile(path.join(__dirname, '../index.html'));
 });
 
 // Health check API
@@ -84,7 +75,37 @@ app.get('/api/health', async (req: Request, res: Response) => {
     }
 });
 
-// Route definitions
+// Root API endpoint - API info
+app.get('/', (req: Request, res: Response) => {
+    res.json({
+        name: 'Book Management API',
+        version: '1.0.0',
+        description: 'REST API for book management system',
+        endpoints: {
+            health: '/api/health',
+            user: {
+                register: 'POST /user/register',
+                login: 'POST /user/login',
+                refresh: 'POST /user/refresh',
+                profile: 'PUT /user/profile',
+                history: 'GET /user/rental-history'
+            },
+            book: {
+                list: 'GET /book/list?page=1&pageSize=10',
+                detail: 'GET /book/detail/:isbn',
+                rental: 'POST /book/rental',
+                return: 'POST /book/return'
+            },
+            admin: {
+                author: 'POST/PUT/DELETE /admin/author',
+                publisher: 'POST/PUT/DELETE /admin/publisher',
+                book: 'POST/PUT/DELETE /admin/book'
+            }
+        }
+    });
+});
+
+// API routes
 app.use('/user', userRoutes);
 app.use('/book', bookRoutes);
 app.use('/admin', adminRoutes);
@@ -101,8 +122,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
         message: err.message,
         stack: err.stack,
         url: req.path,
-        method: req.method,
-        body: req.body
+        method: req.method
     });
 
     res.status(err.status || 500).json({
@@ -115,7 +135,12 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 const server = app.listen(PORT, () => {
     console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
     console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log('\n📚 API Endpoints:');
+    console.log('  User: POST /user/register, /user/login, /user/refresh');
+    console.log('  Book: GET /book/list, /book/detail/:isbn');
+    console.log('  Book: POST /book/rental, /book/return');
+    console.log('  Admin: POST/PUT/DELETE /admin/author, /admin/publisher, /admin/book\n');
 });
 
 // Graceful shutdown
@@ -138,7 +163,6 @@ const gracefulShutdown = async () => {
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
-// Uncaught exception handler
 process.on('uncaughtException', (error) => {
     console.error('❌ Uncaught Exception:', error);
     gracefulShutdown();
