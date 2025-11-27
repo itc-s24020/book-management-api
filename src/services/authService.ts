@@ -20,7 +20,7 @@ export class AuthService {
             return await argon2.hash(password);
         } catch (error) {
             console.error('Password hash error:', error);
-            throw new Error('パスワードのハッシュに失敗しました');
+            throw new Error('Failed to hash password');
         }
     }
 
@@ -60,28 +60,28 @@ export class AuthService {
     }
 
     async registerUser(email: string, name: string, password: string) {
-        // メールアドレスのバリデーション
+        // Email validation
         if (!email || !email.includes('@')) {
-            throw new Error('有効なメールアドレスを入力してください');
+            throw new Error('Please provide a valid email address');
         }
 
-        // 名前のバリデーション
+        // Name validation
         if (!name || name.trim().length === 0) {
-            throw new Error('名前を入力してください');
+            throw new Error('Please provide a name');
         }
 
-        // パスワードのバリデーション
+        // Password validation
         if (!password || password.length < 6) {
-            throw new Error('パスワードは6文字以上である必要があります');
+            throw new Error('Password must be at least 6 characters long');
         }
 
-        // 既存ユーザーの確認
+        // Check for existing user
         const existingUser = await prisma.user.findUnique({
             where: { email: email.toLowerCase() }
         });
 
         if (existingUser) {
-            throw new Error('このメールアドレスは既に登録されています');
+            throw new Error('This email address is already registered');
         }
 
         try {
@@ -106,14 +106,14 @@ export class AuthService {
             };
         } catch (error) {
             console.error('Registration error:', error);
-            throw new Error('ユーザー登録に失敗しました');
+            throw new Error('User registration failed');
         }
     }
 
     async loginUser(email: string, password: string) {
-        // バリデーション
+        // Validation
         if (!email || !password) {
-            throw new Error('メールアドレスとパスワードを入力してください');
+            throw new Error('Please provide both email and password');
         }
 
         try {
@@ -122,12 +122,12 @@ export class AuthService {
             });
 
             if (!user || user.isDeleted) {
-                throw new Error('メールアドレスまたはパスワードが正しくありません');
+                throw new Error('Invalid email or password');
             }
 
             const isPasswordValid = await this.verifyPassword(password, user.password);
             if (!isPasswordValid) {
-                throw new Error('メールアドレスまたはパスワードが正しくありません');
+                throw new Error('Invalid email or password');
             }
 
             const payload: AuthPayload = {
@@ -151,7 +151,7 @@ export class AuthService {
             if (error instanceof Error) {
                 throw error;
             }
-            throw new Error('ログインに失敗しました');
+            throw new Error('Login failed');
         }
     }
 

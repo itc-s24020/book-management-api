@@ -27,7 +27,11 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS middleware
+// ===== BODY PARSER MIDDLEWARE (必ず最初に来るべき) =====
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ===== CORS MIDDLEWARE =====
 app.use((req: Request, res: Response, next: NextFunction) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -43,11 +47,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-// Body parser middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Request logging middleware
+// ===== REQUEST LOGGING MIDDLEWARE =====
 app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`\n📨 ${req.method} ${req.path}`);
     if (req.body && Object.keys(req.body).length > 0) {
@@ -56,7 +56,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-// Health check API
+// ===== HEALTH CHECK API =====
 app.get('/api/health', async (req: Request, res: Response) => {
     try {
         await prisma.$queryRaw`SELECT 1`;
@@ -75,7 +75,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
     }
 });
 
-// Root API endpoint - API info
+// ===== ROOT API ENDPOINT =====
 app.get('/', (req: Request, res: Response) => {
     res.json({
         name: 'Book Management API',
@@ -105,18 +105,18 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
-// API routes
+// ===== API ROUTES (ここでルート登録) =====
 app.use('/user', userRoutes);
 app.use('/book', bookRoutes);
 app.use('/admin', adminRoutes);
 
-// 404 handler
+// ===== 404 HANDLER =====
 app.use((req: Request, res: Response) => {
     console.warn(`⚠️ 404 - Route not found: ${req.method} ${req.path}`);
     res.status(404).json({ message: 'Route not found' });
 });
 
-// Global error handler
+// ===== GLOBAL ERROR HANDLER =====
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error('❌ Error:', {
         message: err.message,
@@ -131,7 +131,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     });
 });
 
-// Server startup
+// ===== SERVER STARTUP =====
 const server = app.listen(PORT, () => {
     console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
     console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
@@ -143,7 +143,7 @@ const server = app.listen(PORT, () => {
     console.log('  Admin: POST/PUT/DELETE /admin/author, /admin/publisher, /admin/book\n');
 });
 
-// Graceful shutdown
+// ===== GRACEFUL SHUTDOWN =====
 const gracefulShutdown = async () => {
     console.log('\n📍 Server shutting down gracefully...');
     server.close(() => {

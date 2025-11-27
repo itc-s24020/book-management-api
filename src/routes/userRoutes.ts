@@ -7,43 +7,49 @@ const router = Router();
 const authService = new AuthService();
 const prisma = new PrismaClient();
 
-// 認証ミドルウェア
+// Authentication middleware wrapper
 const authMiddleware = (req: any, res: any, next: any) => authenticateJWT(req, res, next);
 
-// ユーザー登録
+// ===== USER REGISTRATION =====
 router.post('/register', async (req: Request, res: Response) => {
     try {
         const { email, name, password } = req.body;
 
         if (!email || !name || !password) {
-            return res.status(400).json({ message: 'メール、名前、パスワードは必須です' });
+            return res.status(400).json({
+                message: 'Email, name, and password are required'
+            });
         }
 
         const user = await authService.registerUser(email, name, password);
 
         res.status(201).json({
-            message: '登録成功しました',
+            message: 'User registered successfully',
             user
         });
     } catch (error: any) {
         console.error('Register error:', error);
-        res.status(400).json({ message: error.message || '登録に失敗しました' });
+        res.status(400).json({
+            message: error.message || 'Registration failed'
+        });
     }
 });
 
-// ユーザーログイン
+// ===== USER LOGIN =====
 router.post('/login', async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'メールアドレスとパスワードは必須です' });
+            return res.status(400).json({
+                message: 'Email and password are required'
+            });
         }
 
         const result = await authService.loginUser(email, password);
 
         res.status(200).json({
-            message: 'ログイン成功',
+            message: 'Login successful',
             user: {
                 id: result.user.id,
                 email: result.user.email,
@@ -55,27 +61,35 @@ router.post('/login', async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Login error:', error);
-        res.status(401).json({ message: error.message || 'ログインに失敗しました' });
+        res.status(401).json({
+            message: error.message || 'Login failed'
+        });
     }
 });
 
-// トークンリフレッシュ
+// ===== TOKEN REFRESH =====
 router.post('/refresh', async (req: Request, res: Response) => {
     try {
         const { refreshToken } = req.body;
 
         if (!refreshToken) {
-            return res.status(400).json({ message: 'Refresh tokenが必須です' });
+            return res.status(400).json({
+                message: 'Refresh token is required'
+            });
         }
 
         const payload = authService.verifyRefreshToken(refreshToken);
         if (!payload) {
-            return res.status(401).json({ message: 'Invalid refresh token' });
+            return res.status(401).json({
+                message: 'Invalid refresh token'
+            });
         }
 
         const user = await authService.findUserById(payload.userId);
         if (!user) {
-            return res.status(404).json({ message: 'ユーザーが見つかりません' });
+            return res.status(404).json({
+                message: 'User not found'
+            });
         }
 
         const accessToken = authService.generateAccessToken({
@@ -86,12 +100,14 @@ router.post('/refresh', async (req: Request, res: Response) => {
 
         res.status(200).json({ accessToken });
     } catch (error: any) {
-        console.error('Refresh token error:', error);
-        res.status(500).json({ message: error.message || 'トークンリフレッシュに失敗しました' });
+        console.error('Refresh error:', error);
+        res.status(500).json({
+            message: error.message || 'Token refresh failed'
+        });
     }
 });
 
-// ユーザー借り出し記録取得
+// ===== GET USER RENTAL HISTORY (Protected) =====
 router.get('/rental-history', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
@@ -116,18 +132,22 @@ router.get('/rental-history', authMiddleware, async (req: Request, res: Response
         });
     } catch (error: any) {
         console.error('Rental history error:', error);
-        res.status(500).json({ message: error.message || '履歴取得に失敗しました' });
+        res.status(500).json({
+            message: error.message || 'Failed to retrieve rental history'
+        });
     }
 });
 
-// ユーザー名変更
+// ===== UPDATE USER PROFILE (Protected) =====
 router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
         const { name } = req.body;
 
         if (!name || name.trim().length === 0) {
-            return res.status(400).json({ message: '名前は必須です' });
+            return res.status(400).json({
+                message: 'Name is required'
+            });
         }
 
         const updatedUser = await prisma.user.update({
@@ -142,12 +162,14 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
         });
 
         res.status(200).json({
-            message: 'プロフィール更新完了',
+            message: 'Profile updated successfully',
             user: updatedUser
         });
     } catch (error: any) {
         console.error('Profile update error:', error);
-        res.status(500).json({ message: error.message || 'プロフィール更新に失敗しました' });
+        res.status(500).json({
+            message: error.message || 'Profile update failed'
+        });
     }
 });
 
