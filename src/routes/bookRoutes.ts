@@ -8,11 +8,11 @@ const bookService = new BookService();
 // 認証ミドルウェア
 const authMiddleware = (req: any, res: any, next: any) => authenticateJWT(req, res, next);
 
-// 書籍一覧取得 (仕様書: GET /book/list/{page})
-router.get('/list/:page?', async (req: Request, res: Response) => {
+// ===== 書籍一覧取得 (GET /book/list?page=1) =====
+router.get('/list', async (req: Request, res: Response) => {
     try {
-        const page = parseInt(req.params.page || '1') || 1;
-        const pageSize = 5; // 仕様書: 1ページあたり5件
+        const page = parseInt((req.query.page as string) || '1') || 1;
+        const pageSize = 5; // 1ページあたり5件
 
         if (page < 1) {
             return res.status(400).json({ message: 'ページ番号は1以上である必要があります' });
@@ -25,7 +25,7 @@ router.get('/list/:page?', async (req: Request, res: Response) => {
     }
 });
 
-// 書籍詳細取得 (仕様書: GET /book/detail/{isbn})
+// ===== 書籍詳細取得 (GET /book/detail/:isbn) =====
 router.get('/detail/:isbn', async (req: Request, res: Response) => {
     try {
         const isbn = BigInt(req.params.isbn);
@@ -36,7 +36,7 @@ router.get('/detail/:isbn', async (req: Request, res: Response) => {
     }
 });
 
-// 書籍貸出 (仕様書: POST /book/rental)
+// ===== 書籍貸出 (POST /book/rental) =====
 router.post('/rental', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
@@ -59,7 +59,7 @@ router.post('/rental', authMiddleware, async (req: Request, res: Response) => {
     }
 });
 
-// 書籍返却 (仕様書: PUT /book/return)
+// ===== 書籍返却 (PUT /book/return) =====
 router.put('/return', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
