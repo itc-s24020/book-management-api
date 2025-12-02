@@ -9,7 +9,7 @@ export class BookService {
         try {
             const books = await prismaBk.book.findMany({
                 where: { isDeleted: false },
-                include: { author: true, publisher: true },
+                include: { author: true },
                 orderBy: [
                     { publicationYear: 'desc' },
                     { publicationMonth: 'desc' }
@@ -26,12 +26,10 @@ export class BookService {
             return {
                 current: page,
                 last_page: lastPage,
-                total: total,
                 books: books.map(book => ({
-                    isbn: String(book.isbn), // ✅ BigIntを文字列に変換
+                    isbn: Number(book.isbn),
                     title: book.title,
                     author: { name: book.author.name },
-                    publisher: { name: book.publisher.name },
                     publication_year_month: `${book.publicationYear}-${String(book.publicationMonth).padStart(2, '0')}`
                 }))
             };
@@ -53,7 +51,7 @@ export class BookService {
             }
 
             return {
-                isbn: String(book.isbn), // ✅ BigIntを文字列に変換
+                isbn: Number(book.isbn),
                 title: book.title,
                 author: { name: book.author.name },
                 publisher: { name: book.publisher.name },
@@ -128,32 +126,6 @@ export class BookService {
             };
         } catch (error) {
             console.error('❌ Error in returnBook:', error);
-            throw error;
-        }
-    }
-
-    async getUserHistory(userId: string) {
-        try {
-            const history = await prismaBk.rentalLog.findMany({
-                where: { userId },
-                include: { book: true },
-                orderBy: { checkoutDate: 'desc' }
-            });
-
-            return {
-                history: history.map(log => ({
-                    id: log.id,
-                    book: {
-                        isbn: String(log.book.isbn), // ✅ BigIntを文字列に変換
-                        title: log.book.title
-                    },
-                    checkout_date: log.checkoutDate,
-                    due_date: log.dueDate,
-                    returned_date: log.returnedDate
-                }))
-            };
-        } catch (error) {
-            console.error('❌ Error in getUserHistory:', error);
             throw error;
         }
     }

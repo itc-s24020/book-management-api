@@ -8,14 +8,14 @@ const bookService = new BookService();
 // 認証ミドルウェア
 const authMiddleware = (req: any, res: any, next: any) => authenticateJWT(req, res, next);
 
-// 書籍一覧取得
-router.get('/list', async (req: Request, res: Response) => {
+// 書籍一覧取得 (仕様書: GET /book/list/{page})
+router.get('/list/:page?', async (req: Request, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const pageSize = parseInt(req.query.pageSize as string) || 10;
+        const page = parseInt(req.params.page || '1') || 1;
+        const pageSize = 5; // 仕様書: 1ページあたり5件
 
         if (page < 1) {
-            return res.status(400).json({ message: 'Page must be greater than 0' });
+            return res.status(400).json({ message: 'ページ番号は1以上である必要があります' });
         }
 
         const result = await bookService.getBookList(page, pageSize);
@@ -25,47 +25,59 @@ router.get('/list', async (req: Request, res: Response) => {
     }
 });
 
-// 書籍詳細取得
+// 書籍詳細取得 (仕様書: GET /book/detail/{isbn})
 router.get('/detail/:isbn', async (req: Request, res: Response) => {
     try {
         const isbn = BigInt(req.params.isbn);
         const book = await bookService.getBookDetail(isbn);
         res.status(200).json(book);
     } catch (error: any) {
-        res.status(404).json({ message: error.message });
+        res.status(404).json({ message: '書籍が見つかりません' });
     }
 });
 
-// 書籍貸出
+// 書籍貸出 (仕様書: POST /book/rental)
 router.post('/rental', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
-        const { bookIsbn } = req.body;
+        const { book_id } = req.body;
 
-        if (!bookIsbn) {
-            return res.status(400).json({ message: 'Book ISBN is required' });
+        if (!book_id) {
+            return res.status(400).json({ message: '書籍IDは必須です' });
         }
 
-        const rental = await bookService.rentalBook(userId, BigInt(bookIsbn));
-        res.status(201).json(rental);
+        const rental = await bookService.rentalBook(userId, BigInt(book_id));
+        res.status(200).json(rental);
     } catch (error: any) {
+        if (error.message === '書籍が存在しません') {
+            return res.status(404).json({ message: '書籍が存在しません' });
+        }
+        if (error.message === '既に貸出中です') {
+            return res.status(409).json({ message: '既に貸出中です' });
+        }
         res.status(400).json({ message: error.message });
     }
 });
 
-// 書籍返却
-router.post('/return', authMiddleware, async (req: Request, res: Response) => {
+// 書籍返却 (仕様書: PUT /book/return)
+router.put('/return', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
-        const { rentalId } = req.body;
+        const { id } = req.body;
 
-        if (!rentalId) {
-            return res.status(400).json({ message: 'Rental ID is required' });
+        if (!id) {
+            return res.status(400).json({ message: '貸出IDは必須です' });
         }
 
-        const result = await bookService.returnBook(rentalId, userId);
+        const result = await bookService.returnBook(id, userId);
         res.status(200).json(result);
     } catch (error: any) {
+        if (error.message === '存在しない貸出記録です') {
+            return res.status(404).json({ message: '存在しない貸出記録です' });
+        }
+        if (error.message === '他のユーザの貸出書籍です') {
+            return res.status(403).json({ message: '他のユーザの貸出書籍です' });
+        }
         res.status(400).json({ message: error.message });
     }
 });

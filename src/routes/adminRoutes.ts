@@ -11,30 +11,29 @@ router.use((req: any, res: any, next: any) => authorizeAdmin(req, res, next));
 
 // --- 著者管理 ---
 
-// 著者登録
+// 著者登録 (仕様書: POST /admin/author)
 router.post('/author', async (req: Request, res: Response) => {
     try {
         const { name } = req.body;
 
         if (!name) {
-            return res.status(400).json({ message: 'Author name is required' });
+            return res.status(400).json({ message: '著者名は必須です' });
         }
 
         const author = await adminService.createAuthor(name);
-        res.status(201).json(author);
+        res.status(200).json(author);
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }
 });
 
-// 著者更新
-router.put('/author/:id', async (req: Request, res: Response) => {
+// 著者更新 (仕様書: PUT /admin/author)
+router.put('/author', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        const { name } = req.body;
+        const { id, name } = req.body;
 
-        if (!name) {
-            return res.status(400).json({ message: 'Author name is required' });
+        if (!id || !name) {
+            return res.status(400).json({ message: '著者IDと名前は必須です' });
         }
 
         const author = await adminService.updateAuthor(id, name);
@@ -44,59 +43,47 @@ router.put('/author/:id', async (req: Request, res: Response) => {
     }
 });
 
-// 著者削除
-router.delete('/author/:id', async (req: Request, res: Response) => {
+// 著者削除 (仕様書: DELETE /admin/author)
+router.delete('/author', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        await adminService.deleteAuthor(id);
-        res.status(200).json({ message: 'Author deleted successfully' });
-    } catch (error: any) {
-        res.status(400).json({ message: error.message });
-    }
-});
+        const { id } = req.body;
 
-// 著者名検索
-router.get('/author/search', async (req: Request, res: Response) => {
-    try {
-        const keyword = req.query.keyword as string;
-
-        if (!keyword) {
-            return res.status(400).json({ message: 'Keyword is required' });
+        if (!id) {
+            return res.status(400).json({ message: '著者IDは必須です' });
         }
 
-        const result = await adminService.searchAuthor(keyword);
-        res.status(200).json(result);
+        await adminService.deleteAuthor(id);
+        res.status(200).json({ message: '削除しました' });
     } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        res.status(400).json({ message: error.message });
     }
 });
 
 // --- 出版社管理 ---
 
-// 出版社登録
+// 出版社登録 (仕様書: POST /admin/publisher)
 router.post('/publisher', async (req: Request, res: Response) => {
     try {
         const { name } = req.body;
 
         if (!name) {
-            return res.status(400).json({ message: 'Publisher name is required' });
+            return res.status(400).json({ message: '出版社名は必須です' });
         }
 
         const publisher = await adminService.createPublisher(name);
-        res.status(201).json(publisher);
+        res.status(200).json(publisher);
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }
 });
 
-// 出版社更新
-router.put('/publisher/:id', async (req: Request, res: Response) => {
+// 出版社更新 (仕様書: PUT /admin/publisher)
+router.put('/publisher', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        const { name } = req.body;
+        const { id, name } = req.body;
 
-        if (!name) {
-            return res.status(400).json({ message: 'Publisher name is required' });
+        if (!id || !name) {
+            return res.status(400).json({ message: '出版社IDと名前は必須です' });
         }
 
         const publisher = await adminService.updatePublisher(id, name);
@@ -106,90 +93,83 @@ router.put('/publisher/:id', async (req: Request, res: Response) => {
     }
 });
 
-// 出版社削除
-router.delete('/publisher/:id', async (req: Request, res: Response) => {
+// 出版社削除 (仕様書: DELETE /admin/publisher)
+router.delete('/publisher', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        await adminService.deletePublisher(id);
-        res.status(200).json({ message: 'Publisher deleted successfully' });
-    } catch (error: any) {
-        res.status(400).json({ message: error.message });
-    }
-});
+        const { id } = req.body;
 
-// 出版社名検索
-router.get('/publisher/search', async (req: Request, res: Response) => {
-    try {
-        const keyword = req.query.keyword as string;
-
-        if (!keyword) {
-            return res.status(400).json({ message: 'Keyword is required' });
+        if (!id) {
+            return res.status(400).json({ message: '出版社IDは必須です' });
         }
 
-        const result = await adminService.searchPublisher(keyword);
-        res.status(200).json(result);
+        await adminService.deletePublisher(id);
+        res.status(200).json({ message: '削除しました' });
     } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        res.status(400).json({ message: error.message });
     }
 });
 
 // --- 書籍管理 ---
 
-// 書籍登録
+// 書籍登録 (仕様書: POST /admin/book)
 router.post('/book', async (req: Request, res: Response) => {
     try {
-        const { isbn, title, authorId, publisherId, publicationYear, publicationMonth } = req.body;
+        const { isbn, title, author_id, publisher_id, publication_year, publication_month } = req.body;
 
-        if (!isbn || !title || !authorId || !publisherId || !publicationYear || !publicationMonth) {
-            return res.status(400).json({ message: 'All book fields are required' });
+        if (!isbn || !title || !author_id || !publisher_id || !publication_year || !publication_month) {
+            return res.status(400).json({ message: 'すべての項目は必須です' });
         }
 
         await adminService.createBook(
             BigInt(isbn),
             title,
-            authorId,
-            publisherId,
-            publicationYear,
-            publicationMonth
+            author_id,
+            publisher_id,
+            publication_year,
+            publication_month
         );
 
-        res.status(201).json({ message: 'Book registered successfully' });
+        res.status(200).json({ message: '登録しました' });
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }
 });
 
-// 書籍更新
-router.put('/book/:isbn', async (req: Request, res: Response) => {
+// 書籍更新 (仕様書: PUT /admin/book)
+router.put('/book', async (req: Request, res: Response) => {
     try {
-        const isbn = BigInt(req.params.isbn);
-        const { title, authorId, publisherId, publicationYear, publicationMonth } = req.body;
+        const { isbn, title, author_id, publisher_id, publication_year, publication_month } = req.body;
 
-        if (!title || !authorId || !publisherId || !publicationYear || !publicationMonth) {
-            return res.status(400).json({ message: 'All book fields are required' });
+        if (!isbn || !title || !author_id || !publisher_id || !publication_year || !publication_month) {
+            return res.status(400).json({ message: 'すべての項目は必須です' });
         }
 
         await adminService.updateBook(
-            isbn,
+            BigInt(isbn),
             title,
-            authorId,
-            publisherId,
-            publicationYear,
-            publicationMonth
+            author_id,
+            publisher_id,
+            publication_year,
+            publication_month
         );
 
-        res.status(200).json({ message: 'Book updated successfully' });
+        res.status(200).json({ message: '登録しました' });
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }
 });
 
-// 書籍削除
-router.delete('/book/:isbn', async (req: Request, res: Response) => {
+// 書籍削除 (仕様書: DELETE /admin/book)
+router.delete('/book', async (req: Request, res: Response) => {
     try {
-        const isbn = BigInt(req.params.isbn);
-        await adminService.deleteBook(isbn);
-        res.status(200).json({ message: 'Book deleted successfully' });
+        const { isbn } = req.body;
+
+        if (!isbn) {
+            return res.status(400).json({ message: 'ISBNは必須です' });
+        }
+
+        await adminService.deleteBook(BigInt(isbn));
+        res.status(200).json({ message: '削除しました' });
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }

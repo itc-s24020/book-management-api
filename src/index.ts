@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import userRoutes from './routes/userRoutes';
 import bookRoutes from './routes/bookRoutes';
 import adminRoutes from './routes/adminRoutes';
+import searchRoutes from './routes/searchRoutes';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -86,20 +87,23 @@ app.get('/', (req: Request, res: Response) => {
             user: {
                 register: 'POST /user/register',
                 login: 'POST /user/login',
-                refresh: 'POST /user/refresh',
-                profile: 'PUT /user/profile',
-                history: 'GET /user/rental-history'
+                history: 'GET /user/history',
+                change: 'PUT /user/change'
             },
             book: {
-                list: 'GET /book/list?page=1&pageSize=10',
+                list: 'GET /book/list/:page',
                 detail: 'GET /book/detail/:isbn',
                 rental: 'POST /book/rental',
-                return: 'POST /book/return'
+                return: 'PUT /book/return'
             },
             admin: {
                 author: 'POST/PUT/DELETE /admin/author',
                 publisher: 'POST/PUT/DELETE /admin/publisher',
                 book: 'POST/PUT/DELETE /admin/book'
+            },
+            search: {
+                author: 'GET /search/author',
+                publisher: 'GET /search/publisher'
             }
         }
     });
@@ -109,6 +113,7 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/user', userRoutes);
 app.use('/book', bookRoutes);
 app.use('/admin', adminRoutes);
+app.use('/search', searchRoutes);
 
 // ===== 404 HANDLER =====
 app.use((req: Request, res: Response) => {
@@ -137,10 +142,12 @@ const server = app.listen(PORT, () => {
     console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
     console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log('\n📚 API Endpoints:');
-    console.log('  User: POST /user/register, /user/login, /user/refresh');
-    console.log('  Book: GET /book/list, /book/detail/:isbn');
-    console.log('  Book: POST /book/rental, /book/return');
-    console.log('  Admin: POST/PUT/DELETE /admin/author, /admin/publisher, /admin/book\n');
+    console.log('  User: POST /user/register, /user/login');
+    console.log('  User: GET /user/history, PUT /user/change');
+    console.log('  Book: GET /book/list/:page, /book/detail/:isbn');
+    console.log('  Book: POST /book/rental, PUT /book/return');
+    console.log('  Admin: POST/PUT/DELETE /admin/author, /admin/publisher, /admin/book');
+    console.log('  Search: GET /search/author, /search/publisher\n');
 });
 
 // ===== GRACEFUL SHUTDOWN =====
