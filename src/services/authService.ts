@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prismaClient';
 import * as argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-
-const prisma = new PrismaClient();
 
 export interface AuthPayload {
     userId: string;
@@ -13,13 +11,13 @@ export interface AuthPayload {
 
 export class AuthService {
     private jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-    private jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret';
+    private jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your-refresh-secret';
 
     async hashPassword(password: string): Promise<string> {
         try {
             return await argon2.hash(password);
         } catch (error) {
-            console.error('Password hash error:', error);
+            console.error('❌ Password hash error:', error);
             throw new Error('Failed to hash password');
         }
     }
@@ -28,7 +26,7 @@ export class AuthService {
         try {
             return await argon2.verify(hash, password);
         } catch (error) {
-            console.error('Password verify error:', error);
+            console.error('❌ Password verify error:', error);
             return false;
         }
     }
@@ -60,19 +58,21 @@ export class AuthService {
     }
 
     async registerUser(email: string, name: string, password: string) {
+        console.log('📝 Registering user:', email);
+
         // Email validation
         if (!email || !email.includes('@')) {
-            throw new Error('Please provide a valid email address');
+            throw new Error('有効なメールアドレスを入力してください');
         }
 
         // Name validation
         if (!name || name.trim().length === 0) {
-            throw new Error('Please provide a name');
+            throw new Error('名前を入力してください');
         }
 
         // Password validation
         if (!password || password.length < 6) {
-            throw new Error('Password must be at least 6 characters long');
+            throw new Error('パスワードは6文字以上で入力してください');
         }
 
         // Check for existing user
@@ -81,7 +81,7 @@ export class AuthService {
         });
 
         if (existingUser) {
-            throw new Error('This email address is already registered');
+            throw new Error('このメールアドレスは既に登録されています');
         }
 
         try {
@@ -98,6 +98,8 @@ export class AuthService {
                 }
             });
 
+            console.log('✅ User registered successfully:', user.email);
+
             return {
                 id: user.id,
                 email: user.email,
@@ -105,15 +107,17 @@ export class AuthService {
                 isAdmin: user.isAdmin
             };
         } catch (error) {
-            console.error('Registration error:', error);
-            throw new Error('User registration failed');
+            console.error('❌ Registration error:', error);
+            throw new Error('ユーザー登録に失敗しました');
         }
     }
 
     async loginUser(email: string, password: string) {
+        console.log('📨 Login attempt:', email);
+
         // Validation
         if (!email || !password) {
-            throw new Error('Please provide both email and password');
+            throw new Error('メールアドレスとパスワードを入力してください');
         }
 
         try {
@@ -122,12 +126,14 @@ export class AuthService {
             });
 
             if (!user || user.isDeleted) {
-                throw new Error('Invalid email or password');
+                console.log('❌ User not found:', email);
+                throw new Error('メールアドレスまたはパスワードが正しくありません');
             }
 
             const isPasswordValid = await this.verifyPassword(password, user.password);
             if (!isPasswordValid) {
-                throw new Error('Invalid email or password');
+                console.log('❌ Invalid password for user:', email);
+                throw new Error('メールアドレスまたはパスワードが正しくありません');
             }
 
             const payload: AuthPayload = {
@@ -135,6 +141,8 @@ export class AuthService {
                 email: user.email,
                 isAdmin: user.isAdmin
             };
+
+            console.log('✅ User logged in successfully:', user.email);
 
             return {
                 user: {
@@ -147,11 +155,11 @@ export class AuthService {
                 refreshToken: this.generateRefreshToken(payload)
             };
         } catch (error) {
-            console.error('Login error:', error);
             if (error instanceof Error) {
                 throw error;
             }
-            throw new Error('Login failed');
+            console.error('❌ Login error:', error);
+            throw new Error('ログインに失敗しました');
         }
     }
 

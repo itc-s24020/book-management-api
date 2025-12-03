@@ -1,14 +1,21 @@
-import { PrismaClient } from '@prisma/client';
-
-const prismaAdmin = new PrismaClient();
+import { prisma } from '../prismaClient';
 
 export class AdminService {
+    // ===== 著者管理 =====
+
     async createAuthor(name: string) {
         if (!name || name.trim().length === 0) {
             throw new Error('著者名は必須です');
         }
 
-        const author = await prismaAdmin.author.create({ data: { name } });
+        console.log('📝 Creating author:', name);
+
+        const author = await prisma.author.create({
+            data: { name: name.trim() }
+        });
+
+        console.log('✅ Author created:', author.id);
+
         return { id: author.id, name: author.name };
     }
 
@@ -17,29 +24,46 @@ export class AdminService {
             throw new Error('著者名は必須です');
         }
 
-        const author = await prismaAdmin.author.update({
+        console.log('✏️ Updating author:', { id, name });
+
+        const author = await prisma.author.update({
             where: { id },
-            data: { name }
+            data: { name: name.trim() }
         });
+
+        console.log('✅ Author updated:', author.id);
 
         return { id: author.id, name: author.name };
     }
 
     async deleteAuthor(id: string) {
-        await prismaAdmin.author.update({
+        console.log('🗑️ Deleting author:', id);
+
+        await prisma.author.update({
             where: { id },
             data: { isDeleted: true }
         });
 
+        console.log('✅ Author deleted (soft delete):', id);
+
         return { message: '削除しました' };
     }
+
+    // ===== 出版社管理 =====
 
     async createPublisher(name: string) {
         if (!name || name.trim().length === 0) {
             throw new Error('出版社名は必須です');
         }
 
-        const publisher = await prismaAdmin.publisher.create({ data: { name } });
+        console.log('📝 Creating publisher:', name);
+
+        const publisher = await prisma.publisher.create({
+            data: { name: name.trim() }
+        });
+
+        console.log('✅ Publisher created:', publisher.id);
+
         return { id: publisher.id, name: publisher.name };
     }
 
@@ -48,67 +72,187 @@ export class AdminService {
             throw new Error('出版社名は必須です');
         }
 
-        const publisher = await prismaAdmin.publisher.update({
+        console.log('✏️ Updating publisher:', { id, name });
+
+        const publisher = await prisma.publisher.update({
             where: { id },
-            data: { name }
+            data: { name: name.trim() }
         });
+
+        console.log('✅ Publisher updated:', publisher.id);
 
         return { id: publisher.id, name: publisher.name };
     }
 
     async deletePublisher(id: string) {
-        await prismaAdmin.publisher.update({
+        console.log('🗑️ Deleting publisher:', id);
+
+        await prisma.publisher.update({
             where: { id },
             data: { isDeleted: true }
         });
 
+        console.log('✅ Publisher deleted (soft delete):', id);
+
         return { message: '削除しました' };
     }
 
-    async createBook(isbn: bigint, title: string, authorId: string, publisherId: string, publicationYear: number, publicationMonth: number) {
-        const existingBook = await prismaAdmin.book.findUnique({ where: { isbn } });
+    // ===== 書籍管理 =====
+
+    async createBook(
+        isbn: bigint,
+        title: string,
+        authorId: string,
+        publisherId: string,
+        publicationYear: number,
+        publicationMonth: number
+    ) {
+        console.log('📝 Creating book:', { isbn, title });
+
+        // 既存チェック
+        const existingBook = await prisma.book.findUnique({
+            where: { isbn }
+        });
+
         if (existingBook) {
             throw new Error('既に存在するISBNです');
         }
 
-        await prismaAdmin.book.create({
-            data: { isbn, title, authorId, publisherId, publicationYear, publicationMonth }
+        // 著者・出版社の存在確認
+        const author = await prisma.author.findUnique({
+            where: { id: authorId }
         });
+        const publisher = await prisma.publisher.findUnique({
+            where: { id: publisherId }
+        });
+
+        if (!author || author.isDeleted) {
+            throw new Error('指定された著者が見つかりません');
+        }
+
+        if (!publisher || publisher.isDeleted) {
+            throw new Error('指定された出版社が見つかりません');
+        }
+
+        await prisma.book.create({
+            data: {
+                isbn,
+                title: title.trim(),
+                authorId,
+                publisherId,
+                publicationYear,
+                publicationMonth
+            }
+        });
+
+        console.log('✅ Book created:', isbn);
 
         return { message: '登録しました' };
     }
 
-    async updateBook(isbn: bigint, title: string, authorId: string, publisherId: string, publicationYear: number, publicationMonth: number) {
-        await prismaAdmin.book.update({
-            where: { isbn },
-            data: { title, authorId, publisherId, publicationYear, publicationMonth }
+    async updateBook(
+        isbn: bigint,
+        title: string,
+        authorId: string,
+        publisherId: string,
+        publicationYear: number,
+        publicationMonth: number
+    ) {
+        console.log('✏️ Updating book:', { isbn, title });
+
+        // 存在チェック
+        const existingBook = await prisma.book.findUnique({
+            where: { isbn }
         });
+
+        if (!existingBook) {
+            throw new Error('存在しないISBNです');
+        }
+
+        // 著者・出版社の存在確認
+        const author = await prisma.author.findUnique({
+            where: { id: authorId }
+        });
+        const publisher = await prisma.publisher.findUnique({
+            where: { id: publisherId }
+        });
+
+        if (!author || author.isDeleted) {
+            throw new Error('指定された著者が見つかりません');
+        }
+
+        if (!publisher || publisher.isDeleted) {
+            throw new Error('指定された出版社が見つかりません');
+        }
+
+        await prisma.book.update({
+            where: { isbn },
+            data: {
+                title: title.trim(),
+                authorId,
+                publisherId,
+                publicationYear,
+                publicationMonth
+            }
+        });
+
+        console.log('✅ Book updated:', isbn);
 
         return { message: '登録しました' };
     }
 
     async deleteBook(isbn: bigint) {
-        await prismaAdmin.book.update({
+        console.log('🗑️ Deleting book:', isbn);
+
+        await prisma.book.update({
             where: { isbn },
             data: { isDeleted: true }
         });
 
+        console.log('✅ Book deleted (soft delete):', isbn);
+
         return { message: '削除しました' };
     }
 
+    // ===== 検索機能 =====
+
     async searchAuthor(keyword: string) {
-        const authors = await prismaAdmin.author.findMany({
-            where: { name: { contains: keyword }, isDeleted: false }
+        console.log('🔍 Searching authors:', keyword);
+
+        const authors = await prisma.author.findMany({
+            where: {
+                name: { contains: keyword },
+                isDeleted: false
+            }
         });
 
-        return { authors: authors.map(a => ({ id: a.id, name: a.name })) };
+        console.log(`✅ Found ${authors.length} authors`);
+
+        return {
+            authors: authors.map(a => ({
+                id: a.id,
+                name: a.name
+            }))
+        };
     }
 
     async searchPublisher(keyword: string) {
-        const publishers = await prismaAdmin.publisher.findMany({
-            where: { name: { contains: keyword }, isDeleted: false }
+        console.log('🔍 Searching publishers:', keyword);
+
+        const publishers = await prisma.publisher.findMany({
+            where: {
+                name: { contains: keyword },
+                isDeleted: false
+            }
         });
 
-        return { publishers: publishers.map(p => ({ id: p.id, name: p.name })) };
+        console.log(`✅ Found ${publishers.length} publishers`);
+
+        return {
+            publishers: publishers.map(p => ({
+                id: p.id,
+                name: p.name
+            }))
+        };
     }
 }
