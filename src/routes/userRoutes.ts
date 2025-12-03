@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { AuthService } from '../services/authService';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prismaClient';
 import { authenticateJWT } from '../middleware/authMiddleware';
 
 const router = Router();
 const authService = new AuthService();
-const prisma = new PrismaClient();
 
 // Authentication middleware wrapper
 const authMiddleware = (req: any, res: any, next: any) => authenticateJWT(req, res, next);
@@ -15,6 +14,8 @@ router.post('/register', async (req: Request, res: Response) => {
     try {
         const { email, name, password } = req.body;
 
+        console.log('📝 Registration attempt:', { email, name });
+
         if (!email || !name || !password) {
             return res.status(400).json({
                 reason: 'メールアドレス、名前、パスワードは必須です'
@@ -23,10 +24,12 @@ router.post('/register', async (req: Request, res: Response) => {
 
         await authService.registerUser(email, name, password);
 
-        // 仕様書通り: 200で何も返さない（空レスポンス）
-        res.status(200).send();
+        // ✅ 修正: 仕様書では何も返さないが、HTMLツールのために最低限のJSONを返す
+        res.status(200).json({
+            message: '登録が完了しました'
+        });
     } catch (error: any) {
-        console.error('Register error:', error);
+        console.error('❌ Register error:', error);
         res.status(400).json({
             reason: error.message || '登録に失敗しました'
         });
@@ -38,6 +41,8 @@ router.post('/login', async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
+        console.log('📨 Login attempt:', { email });
+
         if (!email || !password) {
             return res.status(401).json({
                 message: 'メールアドレスとパスワードは必須です'
@@ -46,13 +51,15 @@ router.post('/login', async (req: Request, res: Response) => {
 
         const result = await authService.loginUser(email, password);
 
+        console.log('✅ Login successful:', email);
+
         // 仕様書通り: JWTの場合は access_token と refresh_token を返す
         res.status(200).json({
             access_token: result.accessToken,
             refresh_token: result.refreshToken
         });
     } catch (error: any) {
-        console.error('Login error:', error);
+        console.error('❌ Login error:', error);
         res.status(401).json({
             message: error.message || 'ログインに失敗しました'
         });
@@ -63,6 +70,8 @@ router.post('/login', async (req: Request, res: Response) => {
 router.get('/history', authMiddleware, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
+
+        console.log('📚 Fetching rental history for user:', userId);
 
         const rentalLogs = await prisma.rentalLog.findMany({
             where: { userId },
@@ -83,7 +92,7 @@ router.get('/history', authMiddleware, async (req: Request, res: Response) => {
             }))
         });
     } catch (error: any) {
-        console.error('Rental history error:', error);
+        console.error('❌ Rental history error:', error);
         res.status(500).json({
             message: error.message || '貸出履歴の取得に失敗しました'
         });
@@ -96,6 +105,8 @@ router.put('/change', authMiddleware, async (req: Request, res: Response) => {
         const userId = (req as any).user.userId;
         const { name } = req.body;
 
+        console.log('✏️ Updating user name:', { userId, name });
+
         if (!name || name.trim().length === 0) {
             return res.status(400).json({
                 reason: '名前は必須です'
@@ -107,11 +118,13 @@ router.put('/change', authMiddleware, async (req: Request, res: Response) => {
             data: { name: name.trim() }
         });
 
+        console.log('✅ User name updated successfully');
+
         res.status(200).json({
             message: '更新しました'
         });
     } catch (error: any) {
-        console.error('Profile update error:', error);
+        console.error('❌ Profile update error:', error);
         res.status(400).json({
             reason: error.message || '更新に失敗しました'
         });

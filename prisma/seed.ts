@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse';
-import * as bcrypt from 'bcryptjs'; // bcryptjs に置き換え
+import * as argon2 from 'argon2'; // ✅ bcryptjs から argon2 に変更
 
 const prisma = new PrismaClient();
 
@@ -61,7 +61,7 @@ async function main() {
     }
     console.log(`✅ Seeded ${books.length} books.`);
 
-    // 4. User
+    // 4. User (✅ argon2でハッシュ化)
     const users = [
         { email: 'admin@example.com', name: 'Admin User', password: 'admin123', isAdmin: true },
         { email: 'user1@example.com', name: 'User One', password: 'user123', isAdmin: false },
@@ -69,7 +69,7 @@ async function main() {
     ];
 
     for (const u of users) {
-        const hashedPassword = await bcrypt.hash(u.password, 10);
+        const hashedPassword = await argon2.hash(u.password);
         await prisma.user.create({
             data: {
                 email: u.email,
@@ -78,6 +78,7 @@ async function main() {
                 isAdmin: u.isAdmin,
             },
         });
+        console.log(`✅ Created user: ${u.email} (password: ${u.password})`);
     }
     console.log(`✅ Seeded ${users.length} users.`);
 
@@ -101,6 +102,10 @@ async function main() {
     console.log(`✅ Seeded ${firstBooks.length} rental logs.`);
 
     console.log('✨ Seeding finished.');
+    console.log('\n📝 Login credentials:');
+    console.log('   Admin: admin@example.com / admin123');
+    console.log('   User1: user1@example.com / user123');
+    console.log('   User2: user2@example.com / user123');
 }
 
 main()
