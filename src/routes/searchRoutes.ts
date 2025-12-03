@@ -5,9 +5,10 @@ const router = Router();
 const adminService = new AdminService();
 
 // 著者名検索 (仕様書: GET /search/author)
+// ✅ 修正: req.body → req.query に変更
 router.get('/author', async (req: Request, res: Response) => {
     try {
-        const { keyword } = req.body;
+        const { keyword } = req.query;
 
         if (!keyword) {
             return res.status(400).json({ message: '検索キーワードは必須です' });
@@ -21,9 +22,10 @@ router.get('/author', async (req: Request, res: Response) => {
 });
 
 // 出版社名検索 (仕様書: GET /search/publisher)
+// ✅ 修正: req.body → req.query に変更
 router.get('/publisher', async (req: Request, res: Response) => {
     try {
-        const { keyword } = req.body;
+        const { keyword } = req.query;
 
         if (!keyword) {
             return res.status(400).json({ message: '検索キーワードは必須です' });
