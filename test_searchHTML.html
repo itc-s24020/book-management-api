@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 検索APIテスト</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'メイリオ', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .search-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .result-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-id {
+            font-size: 0.85em;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .result-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #f44336;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        .info-box {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-box h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .info-box code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🔍 検索APIテスト</h1>
+        <p>著者・出版社の検索機能をテストします</p>
+    </header>
+
+    <div class="info-box">
+        <h2>📋 使い方</h2>
+        <ul>
+            <li>左側で<strong>著者名</strong>を検索できます（例: 掌田、野崎）</li>
+            <li>右側で<strong>出版社名</strong>を検索できます（例: 秀和、技術評論社）</li>
+            <li>部分一致で検索されます</li>
+        </ul>
+    </div>
+
+    <div class="search-grid">
+        <!-- 著者検索 -->
+        <div class="card">
+            <div class="card-header">
+                👤 著者名検索
+            </div>
+            <div class="card-body">
+                <form id="authorForm">
+                    <div class="form-group">
+                        <label for="authorKeyword">検索キーワード</label>
+                        <input
+                                type="text"
+                                id="authorKeyword"
+                                placeholder="例: 掌田"
+                                required
+                        >
+                    </div>
+                    <button type="submit" class="btn">検索する</button>
+                </form>
+
+                <div id="authorResults" class="results">
+                    <h3>検索結果</h3>
+                    <div id="authorResultsContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 出版社検索 -->
+        <div class="card">
+            <div class="card-header">
+                🏢 出版社名検索
+            </div>
+            <div class="card-body">
+                <form id="publisherForm">
+                    <div class="form-group">
+                        <label for="publisherKeyword">検索キーワード</label>
+                        <input
+                                type="text"
+                                id="publisherKeyword"
+                                placeholder="例: 秀和"
+                                required
+                        >
+                    </div>
+                    <button type="submit" class="btn">検索する</button>
+                </form>
+
+                <div id="publisherResults" class="results">
+                    <h3>検索結果</h3>
+                    <div id="publisherResultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:3000';
+
+    // 著者検索
+    document.getElementById('authorForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const keyword = document.getElementById('authorKeyword').value;
+        const resultsDiv = document.getElementById('authorResults');
+        const resultsContent = document.getElementById('authorResultsContent');
+
+        try {
+            resultsContent.innerHTML = '<p style="text-align: center;">検索中...</p>';
+            resultsDiv.classList.add('show');
+
+            const response = await fetch(`${API_BASE}/search/author?keyword=${encodeURIComponent(keyword)}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                if (data.authors && data.authors.length > 0) {
+                    resultsContent.innerHTML = data.authors.map(author => `
+                        <div class="result-item">
+                            <div class="result-id">ID: ${author.id}</div>
+                            <div class="result-name">${author.name}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsContent.innerHTML = '<div class="no-results">検索結果が見つかりませんでした</div>';
+                }
+            } else {
+                resultsContent.innerHTML = `<div class="error">${data.message || 'エラーが発生しました'}</div>`;
+            }
+        } catch (error) {
+            resultsContent.innerHTML = `<div class="error">サーバーに接続できません: ${error.message}</div>`;
+        }
+    });
+
+    // 出版社検索
+    document.getElementById('publisherForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const keyword = document.getElementById('publisherKeyword').value;
+        const resultsDiv = document.getElementById('publisherResults');
+        const resultsContent = document.getElementById('publisherResultsContent');
+
+        try {
+            resultsContent.innerHTML = '<p style="text-align: center;">検索中...</p>';
+            resultsDiv.classList.add('show');
+
+            const response = await fetch(`${API_BASE}/search/publisher?keyword=${encodeURIComponent(keyword)}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                if (data.publishers && data.publishers.length > 0) {
+                    resultsContent.innerHTML = data.publishers.map(publisher => `
+                        <div class="result-item">
+                            <div class="result-id">ID: ${publisher.id}</div>
+                            <div class="result-name">${publisher.name}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsContent.innerHTML = '<div class="no-results">検索結果が見つかりませんでした</div>';
+                }
+            } else {
+                resultsContent.innerHTML = `<div class="error">${data.message || 'エラーが発生しました'}</div>`;
+            }
+        } catch (error) {
+            resultsContent.innerHTML = `<div class="error">サーバーに接続できません: ${error.message}</div>`;
+        }
+    });
+</script>
+</body>
+</html>
