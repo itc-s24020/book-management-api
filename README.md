@@ -12,45 +12,57 @@
 | **パスワードハッシュ** | **argon2** |
 
 ---
+book-management-api/
 
-## 📂 プロジェクトのファイル構成
+├── prisma/
 
-### `book-management-api/`
+│   ├── schema.prisma        # Prismaスキーマ定義
 
-| ファイル/ディレクトリ | 役割 |
-| :--- | :--- |
-| `.env` | **環境変数**（DB接続情報、JWT Secretなど。Git管理外） |
-| `.gitignore` | Git管理対象外ファイル定義 |
-| `package.json` | 依存関係、実行スクリプト定義 |
-| `tsconfig.json` | TypeScriptコンパイラ設定 |
-| `README.md` | プロジェクト概要、ドキュメント |
+│   ├── seed.ts             # 初期データ投入スクリプト
 
-### 📁 `prisma/` ディレクトリ
+│   ├── author.csv          # 著者データ
 
-| ファイル | 役割 |
-| :--- | :--- |
-| `schema.prisma` | **Prismaスキーマ定義** (データベースモデル) |
-| `seed.ts` | **初期データ投入スクリプト** |
-| `author.csv` | 著者データのシードデータ |
-| `publisher.csv` | 出版社データのシードデータ |
-| `book.csv` | 書籍データのシードデータ |
+│   ├── publisher.csv       # 出版社データ
 
-### 📁 `src/` ディレクトリ (主要ロジック)
+│   └── book.csv            # 書籍データ
 
-| ファイル/ディレクトリ | 役割 |
-| :--- | :--- |
-| `index.ts` | **アプリケーションエントリーポイント** (Expressサーバー起動) |
-| `prismaClient.ts` | Prismaクライアントのシングルトンインスタンス |
-| `middleware/authMiddleware.ts` | **JWT認証ミドルウェア** |
-| `routes/userRoutes.ts` | ユーザー登録、ログインなどの**ユーザー関連ルート** |
-| `routes/bookRoutes.ts` | 書籍のCRUD操作などの**書籍関連ルート** |
-| `routes/adminRoutes.ts` | 管理者専用機能の**管理者関連ルート** |
-| `routes/searchRoutes.ts` | 著者・出版社・書籍検索の**検索関連ルート** |
-| `services/authService.ts` | 認証、トークン生成などの**認証サービス** |
-| `services/bookService.ts` | 書籍データ操作などの**書籍サービス** |
-| `services/adminService.ts` | 管理者機能の**管理者サービス** |
+├── src/
 
----
+│   ├── middleware/
+
+│   │   └── authMiddleware.ts  # JWT認証ミドルウェア
+
+│   ├── routes/
+
+│   │   ├── userRoutes.ts   # ユーザー関連ルート
+
+│   │   ├── bookRoutes.ts   # 書籍関連ルート
+
+│   │   ├── adminRoutes.ts  # 管理者関連ルート
+
+│   │   └── searchRoutes.ts # 検索関連ルート
+
+│   ├── services/
+
+│   │   ├── authService.ts  # 認証サービス
+
+│   │   ├── bookService.ts  # 書籍サービス
+
+│   │   └── adminService.ts # 管理者サービス
+
+│   ├── prismaClient.ts     # Prismaクライアント
+
+│   └── index.ts            # アプリケーションエントリーポイント
+
+├── .env                     # 環境変数（Git管理外）
+
+├── .gitignore
+
+├── package.json
+
+├── tsconfig.json
+
+└── README.md　
 
 ## 🔑 テストアカウント情報
 
